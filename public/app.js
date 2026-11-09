@@ -5,13 +5,11 @@ const els = {
   statusLabel: $("status-label"),
   alert: $("alert"),
   alertTitle: $("alert-title"),
+  alertDetail: $("alert-detail"),
   alertHint: $("alert-hint"),
   issuerId: $("issuer-id"),
   stats: $("stats"),
   refresh: $("refresh"),
-  form: $("issue-form"),
-  coreId: $("core-id"),
-  generate: $("generate"),
   issue: $("issue"),
   issued: $("issued"),
   empty: $("empty"),
@@ -19,7 +17,6 @@ const els = {
   clientSource: $("client-source"),
   provider: $("provider"),
   dialog: $("confirm"),
-  confirmCore: $("confirm-core"),
   confirmOk: $("confirm-ok"),
   confirmCancel: $("confirm-cancel"),
   confirmClose: $("confirm-close"),
@@ -61,6 +58,9 @@ function setStatus(state, label) {
 
 function showError(error) {
   els.alertTitle.textContent = error?.message || "Something went wrong.";
+  const detail = error?.detail && error.detail !== error.message ? `UIID says: ${error.detail}` : "";
+  els.alertDetail.textContent = detail;
+  els.alertDetail.hidden = !detail;
   els.alertHint.textContent = error?.hint || "";
   els.alertHint.hidden = !error?.hint;
   els.alert.hidden = false;
@@ -94,6 +94,14 @@ function humanize(key) {
   return key.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function formatValue(key, value) {
+  if (typeof value === "string" && /(_at|date)$/i.test(key)) {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toLocaleDateString();
+  }
+  return String(value);
+}
+
 async function withBusy(button, task) {
   const original = button.textContent;
   button.disabled = true;
@@ -114,14 +122,14 @@ function renderIssuer(issuer) {
     const dt = document.createElement("dt");
     dt.textContent = humanize(key);
     const dd = document.createElement("dd");
-    dd.textContent = String(value);
+    dd.textContent = formatValue(key, value);
     box.append(dt, dd);
     els.stats.append(box);
   }
 }
 
 async function loadIssuer({ quiet = false } = {}) {
-  clearError();
+  if (!quiet) clearError();
   setStatus("checking", "Checking");
   try {
     const { issuer } = await api("/api/issuer", {}, { quiet });
@@ -130,21 +138,12 @@ async function loadIssuer({ quiet = false } = {}) {
     els.issue.disabled = false;
   } catch (error) {
     setStatus("error", error?.code === "not_configured" ? "Not configured" : "Error");
+    els.issue.disabled = true;
     showError(error);
   }
 }
 
 /* ---------- Issue flow ---------- */
-
-function validateCoreId() {
-  const value = els.coreId.value.trim();
-  if (value && !/^[\x21-\x7E]{1,64}$/.test(value)) {
-    showError({ message: "The Core ID must be 1 to 64 characters without spaces.", hint: "Leave the field empty, or press Generate." });
-    els.coreId.focus();
-    return null;
-  }
-  return value;
-}
 
 function addIssued(coreId, issuedAt) {
   els.issued.querySelectorAll("li.new").forEach((li) => li.classList.remove("new"));
@@ -182,18 +181,12 @@ function addIssued(coreId, issuedAt) {
 }
 
 async function issue() {
-  const coreId = validateCoreId();
-  if (coreId === null) return;
   clearError();
   await withBusy(els.issue, async () => {
     try {
-      const { created, issuedAt } = await api("/api/uiids", {
-        method: "POST",
-        body: JSON.stringify(coreId ? { coreId } : {}),
-      });
+      const { created, issuedAt } = await api("/api/uiids", { method: "POST", body: "{}" });
       addIssued(created?.uiid_core_id ?? JSON.stringify(created), issuedAt);
-      els.coreId.value = "";
-      loadIssuer({ quiet: true }); // refresh counters, keep the issue response visible
+      await loadIssuer({ quiet: true }); // refresh counters, keep the issue response visible
     } catch (error) {
       showError(error);
     }
@@ -205,9 +198,6 @@ async function issue() {
 let lastFocus = null;
 
 function openConfirm() {
-  const coreId = validateCoreId();
-  if (coreId === null) return;
-  els.confirmCore.textContent = coreId;
   lastFocus = document.activeElement;
   els.dialog.showModal();
   els.confirmCancel.focus();
@@ -232,19 +222,8 @@ els.confirmOk.addEventListener("click", () => { closeConfirm(); issue(); });
 
 /* ---------- Wiring ---------- */
 
-els.form.addEventListener("submit", (e) => { e.preventDefault(); openConfirm(); });
+els.issue.addEventListener("click", openConfirm);
 els.refresh.addEventListener("click", () => withBusy(els.refresh, () => loadIssuer()));
-els.generate.addEventListener("click", () =>
-  withBusy(els.generate, async () => {
-    clearError();
-    try {
-      const { uiid } = await api("/api/core-id/generate");
-      els.coreId.value = uiid;
-    } catch (error) {
-      showError(error);
-    }
-  })
-);
 
 async function init() {
   initTheme();

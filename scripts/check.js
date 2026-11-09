@@ -23,7 +23,11 @@ if (!config.apiKey) {
   console.log("\n  Copy .env.example to .env and add your API key.\n");
   process.exit(1);
 }
-ok(`API key set (${config.apiKey.slice(0, 4)}…, ${config.apiKey.length} characters)`);
+const k = config.apiKey;
+ok(`API key set (${k.length} characters, starts with "${k.slice(0, 4)}", ends with "${k.slice(-2)}")`);
+if (process.env.UIID_ISSUER_KEY && process.env.UIID_ISSUER_KEY.trim() !== k) {
+  info("Removed quotes, spaces or a \"Bearer \" prefix from the key.");
+}
 ok(`Provider: ${config.baseUrl}`);
 
 existsSync(config.sdkPath)
@@ -41,6 +45,7 @@ try {
 } catch (err) {
   const e = describeError(err);
   fail(`${e.status} ${e.code}: ${e.message}`);
+  if (e.detail) console.log(`         UIID says: ${e.detail}`);
   if (e.hint) console.log(`         ${e.hint}`);
   console.log();
   process.exit(1);

@@ -7,7 +7,6 @@ import { describeError } from "./lib/errors.js";
 
 const PUBLIC_DIR = path.join(ROOT, "public");
 const MAX_BODY_BYTES = 4 * 1024;
-const CORE_ID_PATTERN = /^[\x21-\x7E]{1,64}$/; // printable ASCII, no spaces, max 64
 
 const { client, source } = await createIssuerClient(config);
 
@@ -16,7 +15,7 @@ const MIME = {
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml",
-  ".ico": "image/x-icon",
+  ".png": "image/png",
 };
 
 const SECURITY_HEADERS = {
@@ -37,13 +36,13 @@ function sendJson(res, status, payload) {
 
 function sendError(res, err) {
   const info = describeError(err);
-  console.error(`[uiid] ${info.status} ${info.code}: ${err?.message ?? err}`);
+  console.error(`[uiid] ${info.status} ${info.code}${info.detail ? ` (UIID says: ${info.detail})` : ""}`);
   sendJson(res, info.status, { ok: false, error: info });
 }
 
 /**
  * Blocks requests from other websites (CSRF). A page on another origin
- * cannot set Content-Type: application/json without a CORS preflight,
+ * cannot send Content-Type: application/json without a CORS preflight,
  * and we also compare the Origin header with our own host.
  */
 function isSameOriginJson(req) {
@@ -54,19 +53,11 @@ function isSameOriginJson(req) {
   return origin === `http://${req.headers.host}`;
 }
 
-async function readJsonBody(req) {
+async function drainBody(req) {
   let size = 0;
-  const chunks = [];
   for await (const chunk of req) {
     size += chunk.length;
     if (size > MAX_BODY_BYTES) throw Object.assign(new Error("Body too large"), { status: 413, code: "body_too_large" });
-    chunks.push(chunk);
-  }
-  if (!chunks.length) return {};
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-  } catch {
-    throw Object.assign(new Error("Invalid JSON body"), { status: 400, code: "invalid_json" });
   }
 }
 
@@ -98,36 +89,18 @@ const routes = {
   "POST /api/uiids": async (req, res) => {
     if (!requireClient(res)) return;
     if (!isSameOriginJson(req)) {
-      return sendJson(res, 403, { ok: false, error: { status: 403, code: "forbidden_origin", message: "Request blocked.", hint: "Use the demo page served by this server." } });
-    }
-    const body = await readJsonBody(req);
-    const coreId = typeof body.coreId === "string" ? body.coreId.trim() : "";
-
-    if (coreId && !CORE_ID_PATTERN.test(coreId)) {
-      return sendJson(res, 400, {
+      return sendJson(res, 403, {
         ok: false,
-        error: { status: 400, code: "invalid_identifiers", message: "The Core ID must be 1 to 64 characters without spaces.", hint: "Leave the field empty, or press Generate." },
+        error: { status: 403, code: "forbidden_origin", message: "Request blocked.", hint: "Use the demo page served by this server." },
       });
     }
+    await drainBody(req);
 
-    // Documented SDK call: issuer.createUiid(). An optional Core ID is passed
-    // as uiid_core_id (same name as in the documented response).
-    const created = coreId ? await client.createUiid({ uiid_core_id: coreId }) : await client.createUiid();
-    console.log(`[uiid] Issued ${created?.uiid_core_id ?? "(see response)"}`);
+    // Documented SDK call: createUiid() takes no arguments.
+    // UIID creates the Core ID and anchors it to your Issuer ID in one step.
+    const created = await client.createUiid();
+    console.log(`[uiid] Issued ${created?.uiid_core_id ?? "(no uiid_core_id in response)"}`);
     sendJson(res, 201, { ok: true, created, issuedAt: new Date().toISOString() });
-  },
-
-  "GET /api/core-id/generate": async (_req, res) => {
-    // Public utility endpoint, no API key needed. Proxied to avoid CORS.
-    const upstream = await fetch(`${config.baseUrl}/api/v1/core/uiid/generate`, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(10000),
-    });
-    const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok || typeof data.uiid !== "string") {
-      throw Object.assign(new Error("Could not generate a Core ID"), { status: 502, code: "generate_failed" });
-    }
-    sendJson(res, 200, { ok: true, uiid: data.uiid });
   },
 };
 
@@ -156,7 +129,9 @@ const server = http.createServer(async (req, res) => {
   const handler = routes[`${req.method} ${pathname}`];
   try {
     if (handler) return await handler(req, res);
-    if (pathname.startsWith("/api/")) return sendJson(res, 404, { ok: false, error: { status: 404, code: "not_found", message: "Unknown endpoint." } });
+    if (pathname.startsWith("/api/")) {
+      return sendJson(res, 404, { ok: false, error: { status: 404, code: "not_found", message: "Unknown endpoint." } });
+    }
     if (req.method === "GET" || req.method === "HEAD") return await serveStatic(req, res, pathname);
     res.writeHead(405).end();
   } catch (err) {

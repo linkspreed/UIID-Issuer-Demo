@@ -36,6 +36,7 @@
 
     <div id="alert" class="alert" role="alert" hidden>
       <p class="alert-title" id="alert-title"></p>
+      <p class="alert-detail mono" id="alert-detail"></p>
       <p class="alert-hint" id="alert-hint"></p>
     </div>
 
@@ -53,16 +54,8 @@
 
         <section class="card" aria-labelledby="issue-title">
           <h2 id="issue-title">Issue.</h2>
-          <form id="issue-form" novalidate>
-            <label class="label" for="core-id">Core ID <span class="optional">(optional)</span></label>
-            <div class="field-row">
-              <input class="input mono" id="core-id" name="coreId" maxlength="64" autocomplete="off" spellcheck="false"
-                     placeholder="Leave empty to let UIID decide" aria-describedby="core-id-help">
-              <button type="button" class="btn btn-secondary" id="generate">Generate</button>
-            </div>
-            <p class="help" id="core-id-help">Up to 64 characters. Every issued UIID stays anchored to your Issuer ID forever.</p>
-            <button type="submit" class="btn btn-primary btn-wide" id="issue">Issue UIID</button>
-          </form>
+          <p class="help">UIID creates a new Core ID and anchors it to your Issuer ID in one step. This can't be undone or moved to another issuer.</p>
+          <button type="button" class="btn btn-primary btn-wide" id="issue">Issue UIID</button>
         </section>
       </div>
 
@@ -96,7 +89,6 @@
       <button type="button" class="icon-btn" id="confirm-close" aria-label="Close">×</button>
     </div>
     <p class="dialog-text">This creates a real UIID Core ID. It is anchored to your Issuer ID and can't be moved to another issuer later.</p>
-    <p class="mono dialog-core" id="confirm-core"></p>
     <div class="dialog-actions">
       <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancel</button>
       <button type="button" class="btn btn-primary" id="confirm-ok">Issue</button>

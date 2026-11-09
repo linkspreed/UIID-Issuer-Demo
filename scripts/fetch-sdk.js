@@ -15,8 +15,8 @@ try {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const code = await res.text();
 
-  if (!/UiidIssuer/.test(code)) {
-    throw new Error("The downloaded file does not look like the UIID Issuer SDK (no 'UiidIssuer' found).");
+  if (!/class\s+UiidIssuer\b/.test(code)) {
+    throw new Error("The downloaded file does not look like the UIID Issuer SDK (no 'class UiidIssuer' found).");
   }
 
   await mkdir(path.dirname(config.sdkPath), { recursive: true });
