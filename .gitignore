@@ -1,0 +1,14 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Official SDK is downloaded locally with "npm run sdk:fetch"
+vendor/*
+!vendor/.gitkeep
+
+# Node / OS
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db

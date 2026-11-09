@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UIID Issuer Demo</title>
+  <meta name="description" content="Issue UIIDs anchored to your own Issuer ID with the UIID Issuer SDK.">
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="chrome-header">
+    <div class="wrap header-row">
+      <span class="wordmark">UIID Issuer Demo</span>
+      <div class="header-tools">
+        <span class="status-pill" id="status" data-state="checking" role="status" aria-live="polite">
+          <span class="dot" aria-hidden="true"></span><span id="status-label">Checking</span>
+        </span>
+        <fieldset class="theme-switch">
+          <legend class="sr-only">Color theme</legend>
+          <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+          <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+          <label><input type="radio" name="theme" value="system"><span>System</span></label>
+        </fieldset>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <p class="eyebrow">Issuer SDK demo</p>
+      <h1>Issue a UIID<span class="accent-dot">.</span></h1>
+      <p class="lead">Create UIID Core IDs that are permanently anchored to your Issuer ID. People can then sign in with that identity to the UIID app and to your app.</p>
+    </section>
+
+    <div id="alert" class="alert" role="alert" hidden>
+      <p class="alert-title" id="alert-title"></p>
+      <p class="alert-hint" id="alert-hint"></p>
+    </div>
+
+    <div class="grid">
+      <div class="stack">
+        <section class="card" aria-labelledby="issuer-title">
+          <div class="card-head">
+            <h2 id="issuer-title">Your issuer.</h2>
+            <button type="button" class="btn btn-secondary btn-small" id="refresh">Refresh</button>
+          </div>
+          <p class="label">Issuer ID</p>
+          <p class="mono big" id="issuer-id">—</p>
+          <dl class="stats" id="stats"></dl>
+        </section>
+
+        <section class="card" aria-labelledby="issue-title">
+          <h2 id="issue-title">Issue.</h2>
+          <form id="issue-form" novalidate>
+            <label class="label" for="core-id">Core ID <span class="optional">(optional)</span></label>
+            <div class="field-row">
+              <input class="input mono" id="core-id" name="coreId" maxlength="64" autocomplete="off" spellcheck="false"
+                     placeholder="Leave empty to let UIID decide" aria-describedby="core-id-help">
+              <button type="button" class="btn btn-secondary" id="generate">Generate</button>
+            </div>
+            <p class="help" id="core-id-help">Up to 64 characters. Every issued UIID stays anchored to your Issuer ID forever.</p>
+            <button type="submit" class="btn btn-primary btn-wide" id="issue">Issue UIID</button>
+          </form>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card" aria-labelledby="list-title">
+          <h2 id="list-title">Issued this session.</h2>
+          <ul class="issued" id="issued" aria-live="polite"></ul>
+          <div class="empty" id="empty">
+            <p>Nothing issued yet. This list lives only in this tab, so copy what you need.</p>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="raw-title">
+          <h2 id="raw-title">Last response.</h2>
+          <pre class="raw mono" id="raw" tabindex="0">No request yet.</pre>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="chrome-footer">
+    <div class="wrap footer-row">
+      <span>Client: <span class="mono" id="client-source">—</span></span>
+      <span>Provider: <span class="mono" id="provider">—</span></span>
+    </div>
+  </footer>
+
+  <dialog class="dialog" id="confirm" aria-labelledby="confirm-title">
+    <div class="dialog-head">
+      <h2 id="confirm-title">Issue permanently?</h2>
+      <button type="button" class="icon-btn" id="confirm-close" aria-label="Close">×</button>
+    </div>
+    <p class="dialog-text">This creates a real UIID Core ID. It is anchored to your Issuer ID and can't be moved to another issuer later.</p>
+    <p class="mono dialog-core" id="confirm-core"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirm-ok">Issue</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "uiid-issuer-demo",
+  "version": "1.0.0",
+  "description": "A small, dependency-free demo app for the UIID Issuer SDK. Issue UIIDs anchored to your own Issuer ID.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "sdk:fetch": "node scripts/fetch-sdk.js",
+    "check": "node scripts/check.js"
+  },
+  "keywords": [
+    "uiid",
+    "issuer",
+    "identity",
+    "linkspreed",
+    "demo"
+  ]
+}
